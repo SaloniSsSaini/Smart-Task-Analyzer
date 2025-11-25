@@ -1,0 +1,151 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Smart Task Analyzer — Pro (Mixed UI)</title>
+
+  <!-- Google Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+  <!-- FullCalendar -->
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet"/>
+
+  <!-- frappe-gantt (simple CDN) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt/dist/frappe-gantt.css">
+
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body data-theme="light">
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <h1>Task<span>AI</span></h1>
+      </div>
+
+      <div class="controls-compact">
+        <input id="search" placeholder="🔎 Search tasks..." />
+        <div class="filter-row">
+          <select id="filter-importance"><option value="">Importance</option><option value="high">High ≥7</option><option value="mid">4-6</option><option value="low">≤3</option></select>
+          <select id="filter-effort"><option value="">Effort</option><option value="quick">Quick ≤1h</option><option value="small">≤4h</option><option value="long">>4h</option></select>
+        </div>
+
+        <div class="theme-switch">
+          <button id="toggle-theme" title="Toggle theme"><i class="fa fa-moon"></i></button>
+        </div>
+
+        <nav class="nav-links">
+          <button id="nav-list" class="nav-btn active">List</button>
+          <button id="nav-kanban" class="nav-btn">Kanban</button>
+          <button id="nav-calendar" class="nav-btn">Calendar</button>
+          <button id="nav-gantt" class="nav-btn">Gantt</button>
+          <button id="nav-graph" class="nav-btn">Graph</button>
+          <button id="nav-dashboard" class="nav-btn">Dashboard</button>
+        </nav>
+      </div>
+
+      <div class="sliders">
+        <h4>Weights</h4>
+        <label>Urgency <input id="w_u" type="range" min="0" max="1" step="0.01" value="0.35"></label>
+        <label>Importance <input id="w_i" type="range" min="0" max="1" step="0.01" value="0.30"></label>
+        <label>Effort <input id="w_e" type="range" min="0" max="1" step="0.01" value="0.20"></label>
+        <label>Dependency <input id="w_d" type="range" min="0" max="1" step="0.01" value="0.15"></label>
+        <button id="apply-weights" class="btn">Apply</button>
+        <button id="learn-preferences" class="btn ghost">Learned preferences</button>
+      </div>
+
+      <div class="export-area">
+        <button id="export-csv" class="btn outline">Export CSV</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="left">
+          <div class="nl-input">
+            <input id="nl" placeholder='Type or speak: "Finish analytics by Friday, 3h, importance 9"' />
+            <button id="pt-parse" title="Parse input" class="btn small">Parse</button>
+            <button id="voice" title="Voice input" class="btn small"><i class="fa fa-microphone"></i></button>
+          </div>
+        </div>
+        <div class="right">
+          <div id="alerts" class="alerts"></div>
+        </div>
+      </header>
+
+      <section class="content" id="view-container">
+        <!-- LIST VIEW -->
+        <div id="view-list" class="view active">
+          <div class="panel input-panel">
+            <form id="task-form" class="task-form">
+              <input name="title" placeholder="Title" required />
+              <div class="row">
+                <input name="due_date" placeholder="Due (YYYY-MM-DD or ISO)" />
+                <input name="estimated_hours" placeholder="Hours" />
+                <input name="importance" placeholder="Importance (1-10)" />
+                <input name="dependencies" placeholder="Dependencies (comma separated ids)" />
+              </div>
+              <div class="form-actions">
+                <button type="submit" class="btn primary">Add Task</button>
+                <button id="bulk-btn" class="btn ghost" type="button">Paste JSON</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="panel list-panel">
+            <div class="list-controls">
+              <select id="strategy"><option value="smart">Smart Balance</option><option value="fastest">Fastest Wins</option><option value="high_impact">High Impact</option><option value="deadline">Deadline Driven</option></select>
+              <button id="analyze" class="btn primary">Analyze</button>
+            </div>
+            <ul id="task-list" class="task-grid"></ul>
+          </div>
+        </div>
+
+        <!-- KANBAN -->
+        <div id="view-kanban" class="view">
+          <div class="kanban">
+            <div class="col" data-col="backlog"><h3>Backlog</h3><div class="cards" id="col-backlog"></div></div>
+            <div class="col" data-col="inprogress"><h3>In Progress</h3><div class="cards" id="col-inprogress"></div></div>
+            <div class="col" data-col="review"><h3>Review</h3><div class="cards" id="col-review"></div></div>
+            <div class="col" data-col="done"><h3>Done</h3><div class="cards" id="col-done"></div></div>
+          </div>
+        </div>
+
+        <!-- CALENDAR -->
+        <div id="view-calendar" class="view">
+          <div id="calendar"></div>
+        </div>
+
+        <!-- GANTT -->
+        <div id="view-gantt" class="view">
+          <div id="gantt" style="min-height:320px;"></div>
+        </div>
+
+        <!-- GRAPH -->
+        <div id="view-graph" class="view">
+          <div id="graph" style="width:100%;height:420px;"></div>
+        </div>
+
+        <!-- DASHBOARD -->
+        <div id="view-dashboard" class="view">
+          <div class="dashboard-grid">
+            <div class="card chart-card"><canvas id="chart-pie"></canvas></div>
+            <div class="card chart-card"><canvas id="chart-bar"></canvas></div>
+            <div class="card insights-card" id="insights"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- libs -->
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/frappe-gantt/dist/frappe-gantt.min.js"></script>
+
+  <script src="script.js"></script>
+</body>
+</html>
